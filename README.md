@@ -51,7 +51,7 @@ pdm install
 ### 3. Ejecutar el dashboard
 
 ```bash
-pdm run python dashboard.py
+pdm run dashboard.py
 ```
 
 ---
@@ -89,4 +89,4 @@ docker run -p 8050:8050 -v $(pwd):/app dashboard-app
 
 ## 📝 Créditos
 
-Desarrollado por [Tu Nombre]. Proyecto académico de visualización de datos con Dash y Python.
+Desarrollado por Gaston Nina. Proyecto académico de visualización de datos con Dash y Python.
