@@ -1,0 +1,25 @@
+[project]
+name = "dashboard-ventas-compras"
+version = "0.1.0"
+description = "Dashboard interactivo de Ventas y Compras usando Dash, Plotly y Bootstrap con filtros y gráficos 3D"
+authors = [
+  { name = "Gaston Nina Sossa", email = "gastonnina@gmail.com" }
+]
+dependencies = [
+  "dash>=2.14",
+  "dash-bootstrap-components>=1.5",
+  "pandas>=2.2",
+  "plotly>=5.18",
+  "openpyxl>=3.1"
+]
+requires-python = ">=3.12"
+
+[project.scripts]
+run-dashboard = "dashboard:app"
+
+[tool.pdm]
+distribution = false  # si no deseas empaquetar
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"

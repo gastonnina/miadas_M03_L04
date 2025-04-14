@@ -1,0 +1,24 @@
+# Ignore virtual environments
+.venv/
+env/
+venv/
+
+# Ignore bytecode and other Python stuff
+__pycache__/
+*.py[cod]
+
+# Ignore PDM internal packages
+__pypackages__/
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Editor folders
+.vscode/
+
+# Ignore notebooks checkpoints
+.ipynb_checkpoints/
+
+# Ignore logs
+*.log
