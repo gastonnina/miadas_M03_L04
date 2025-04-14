@@ -32,6 +32,8 @@ def cargar_datos():
 clientes_df, compras_df, ventas_df = cargar_datos()
 ventas_con_depto = ventas_df.merge(clientes_df[['id_cliente', 'departamento']], on='id_cliente')
 print("🔗 Merge de ventas con departamento completado")
+print("Columnas en ventas_df:", ventas_df.columns.tolist())
+
 
 # Inicializar app
 app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP], suppress_callback_exceptions=True)
@@ -70,7 +72,7 @@ def aplicar_filtros(dfv, dfc, dfcli, start_date, end_date, departamento, metodo,
             dfv = dfv[dfv['departamento'].isin(departamento)]
             dfcli = dfcli[dfcli['departamento'].isin(departamento)]
         if metodo:
-            dfv = dfv[dfv['método_pago'].isin(metodo)]
+            dfv = dfv[dfv['metodo_pago'].isin(metodo)]
         if genero:
             dfcli = dfcli[dfcli['genero'].isin(genero)]
             dfv = dfv[dfv['id_cliente'].isin(dfcli['id_cliente'])]
@@ -87,7 +89,7 @@ app.layout = dbc.Container([
 
      dbc.Row([
         dbc.Col([
-            html.H5("🎛️ Filtros", className="mb-3"),
+            html.H5("📅 Rangos de Fecha", className="mb-1"),
             dcc.DatePickerRange(
                 id='filtro-fechas',
                 start_date=ventas_df['fechahora_transaccion'].min().date(),
@@ -127,10 +129,13 @@ app.layout = dbc.Container([
         dcc.Tabs(id='main-tabs', value='kpis', children=[
             dcc.Tab(label='📈 KPIs', value='kpis'),
             dcc.Tab(label='📊 Gráficas', value='graficas', children=[
-                dcc.Tabs(id='sub-tabs', value='graf-6', children=[
-                    dcc.Tab(label='📍 Gráfico 1', value='graf-6'),
-                    dcc.Tab(label='📍 Gráfico 2', value='graf-2'),
-                    # Agrega más sub-tabs aquí si lo deseas
+                dcc.Tabs(id='sub-tabs', value='graf-ventas-depto', children=[
+                    dcc.Tab(label='📊 Ventas por Depto', value='graf-ventas-depto'),
+                    dcc.Tab(label='📈 Ventas en el tiempo', value='graf-ventas-tiempo'),
+                    dcc.Tab(label='🥧 Clientes por Depto', value='graf-clientes-depto'),
+                    dcc.Tab(label='📈 Compras en el tiempo', value='graf-compras-tiempo'),
+                    dcc.Tab(label='💳 Ventas por Método', value='graf-metodo-pago'),
+                    dcc.Tab(label='🧊 Gráfico 3D', value='graf-3d')
                 ]),
                 html.Div(id='contenido-sub-tab', className='mt-4')
             ])
@@ -182,18 +187,24 @@ def mostrar_contenido_tab(tab, start_date, end_date, departamento, metodo, gener
     if tab == 'kpis':
         dfv, dfc, dfcli = aplicar_filtros(ventas_con_depto.copy(), compras_df.copy(), clientes_df.copy(), start_date, end_date, departamento, metodo, genero)
         kpis = calcular_kpis(dfv, dfc, dfcli)
-        return dbc.Row([
-            dbc.Col(dbc.Card([dbc.CardHeader("💰 Total de Ventas"), dbc.CardBody(f"Bs. {kpis[0]:,.2f}")]), width=4),
-            dbc.Col(dbc.Card([dbc.CardHeader("🛒 Total de Compras"), dbc.CardBody(f"Bs. {kpis[1]:,.2f}")]), width=4),
-            dbc.Col(dbc.Card([dbc.CardHeader("🧭 Clientes por Depto"), dbc.CardBody(html.Ul([html.Li(f"{k}: {v}") for k, v in kpis[2].items()]))]), width=4),
-            dbc.Col(dbc.Card([dbc.CardHeader("🔥 Más Vendido (Cantidad)"), dbc.CardBody(kpis[3])]), width=4),
-            dbc.Col(dbc.Card([dbc.CardHeader("💎 Más Vendido (Monto)"), dbc.CardBody(kpis[4])]), width=4),
-            dbc.Col(dbc.Card([dbc.CardHeader("🎂 Edad Promedio"), dbc.CardBody(f"{kpis[5]:.1f} años")]), width=4),
-            dbc.Col(dbc.Card([dbc.CardHeader("📬 % Suscritos"), dbc.CardBody(f"{kpis[6]:.1f}%")]), width=4),
-            dbc.Col(dbc.Card([dbc.CardHeader("💼 Ingreso Promedio"), dbc.CardBody(f"Bs. {kpis[7]:,.2f}")]), width=4),
-            dbc.Col(dbc.Card([dbc.CardHeader("📦 Promedio Compras"), dbc.CardBody(f"Bs. {kpis[8]:,.2f}")]), width=4),
-            dbc.Col(dbc.Card([dbc.CardHeader("📈 Promedio Ventas"), dbc.CardBody(f"Bs. {kpis[9]:,.2f}")]), width=4),
-        ], className="g-3")
+        clientes_table = dbc.Table.from_dataframe(kpis[2].reset_index().rename(columns={'index': 'Departamento', 'departamento': 'Cantidad'}), striped=True, bordered=True, hover=True, className="mt-3")
+
+        return html.Div([
+            dbc.Row([
+                dbc.Col(dbc.Card([dbc.CardHeader("💰 Total de Ventas"), dbc.CardBody(f"Bs. {kpis[0]:,.2f}")]), width=4),
+                dbc.Col(dbc.Card([dbc.CardHeader("🛒 Total de Compras"), dbc.CardBody(f"Bs. {kpis[1]:,.2f}")]), width=4),
+                dbc.Col(dbc.Card([dbc.CardHeader("🔥 Más Vendido (Cantidad)"), dbc.CardBody(kpis[3])]), width=4),
+                dbc.Col(dbc.Card([dbc.CardHeader("💎 Más Vendido (Monto)"), dbc.CardBody(kpis[4])]), width=4),
+                dbc.Col(dbc.Card([dbc.CardHeader("🎂 Edad Promedio"), dbc.CardBody(f"{kpis[5]:.1f} años")]), width=4),
+                dbc.Col(dbc.Card([dbc.CardHeader("📬 % Suscritos"), dbc.CardBody(f"{kpis[6]:.1f}%")]), width=4),
+                dbc.Col(dbc.Card([dbc.CardHeader("💼 Ingreso Promedio"), dbc.CardBody(f"Bs. {kpis[7]:,.2f}")]), width=4),
+                dbc.Col(dbc.Card([dbc.CardHeader("📦 Promedio Compras"), dbc.CardBody(f"Bs. {kpis[8]:,.2f}")]), width=4),
+                dbc.Col(dbc.Card([dbc.CardHeader("📈 Promedio Ventas"), dbc.CardBody(f"Bs. {kpis[9]:,.2f}")]), width=4),
+            ], className="g-3"),
+            html.Hr(),
+            html.H4("🧭 Clientes por Departamento"),
+            clientes_table
+        ])
     return None
 
 @app.callback(
@@ -212,30 +223,64 @@ def mostrar_contenido_subtab(subtab, start_date, end_date, departamento, metodo,
     try:
         dfv, dfc, dfcli = aplicar_filtros(ventas_con_depto.copy(), compras_df.copy(), clientes_df.copy(), start_date, end_date, departamento, metodo, genero)
 
-        if subtab == 'graf-6':
-            print("📊 Generando gráfico por método y departamento")
-            if dfv.empty:
-                print("⚠️ No hay datos para el gráfico")
-                return html.Div("No hay datos para mostrar con los filtros actuales.")
+        if dfv.empty or dfc.empty or dfcli.empty:
+            print("⚠️ Uno de los dataframes está vacío después de los filtros")
+            return html.Div("No hay datos para mostrar con los filtros actuales.")
 
-            df_grouped = dfv.groupby(['departamento', 'método_pago'])['total'].sum().reset_index()
-            print(f"📈 Datos agrupados: {df_grouped.head()}")
-
-            fig = px.bar(df_grouped,
-                         x='departamento',
-                         y='total',
-                         color='método_pago',
-                         barmode='group',
-                         title='Ventas por Método de Pago y Departamento')
-
-            print("✅ Gráfico generado")
+        if subtab == 'graf-ventas-depto':
+            df_grouped = dfv.groupby('departamento')['total'].sum().reset_index()
+            print(df_grouped.head())
+            fig = px.bar(df_grouped, x='departamento', y='total', title='Ventas por Departamento')
             return dcc.Graph(figure=fig)
 
-        print("ℹ️ Sub-tab no reconocido o sin acción específica")
-        return html.Div(f"Contenido de la sub-tab: {subtab}")
+        elif subtab == 'graf-ventas-tiempo':
+            df_line = dfv.groupby(dfv['fechahora_transaccion'].dt.date)['total'].sum().reset_index()
+            print(df_line.head())
+            fig = px.line(df_line, x='fechahora_transaccion', y='total', title='Ventas a lo largo del tiempo')
+            return dcc.Graph(figure=fig)
+
+        elif subtab == 'graf-clientes-depto':
+            df_pie = dfcli['departamento'].value_counts().reset_index()
+            df_pie.columns = ['departamento', 'cantidad']
+            print(df_pie.head())
+            fig = px.pie(df_pie, names='departamento', values='cantidad', title='Clientes por Departamento')
+            return dcc.Graph(figure=fig)
+
+        elif subtab == 'graf-compras-tiempo':
+            df_line = dfc.groupby(dfc['fechahora_transaccion'].dt.date)['total'].sum().reset_index()
+            print(df_line.head())
+            fig = px.line(df_line, x='fechahora_transaccion', y='total', title='Compras a lo largo del tiempo')
+            return dcc.Graph(figure=fig)
+
+        elif subtab == 'graf-metodo-pago':
+            df_grouped = dfv.groupby('metodo_pago')['total'].sum().reset_index()
+            print(df_grouped.head())
+            fig = px.bar(df_grouped, x='metodo_pago', y='total', title='Total de Ventas por Método de Pago')
+            return dcc.Graph(figure=fig)
+
+        elif subtab == 'graf-3d':
+            print("🧊 Generando gráfico 3D...")
+            columnas_disponibles = dfv.columns.tolist()
+            print("Columnas disponibles en dfv:", columnas_disponibles)
+
+            if 'producto' in dfv.columns:
+                z_col = 'producto'
+            elif 'cantidad' in dfv.columns:
+                z_col = 'cantidad'
+            else:
+                return html.Div("❌ No hay columnas adecuadas para el eje Z del gráfico 3D.")
+
+            print(dfv[['fechahora_transaccion', 'total', z_col]].head())
+            fig = px.scatter_3d(dfv, x='fechahora_transaccion', y='total', z=z_col,
+                                title='Relación 3D: Fecha vs Monto vs ' + z_col,
+                                color='departamento')
+            return dcc.Graph(figure=fig)
+
     except Exception as e:
-        print(f"❌ Error en el callback de sub-tab: {e}")
-        return html.Div("Se produjo un error al generar el contenido.")
+        print(f"❌ Error en mostrar_contenido_subtab: {e}")
+        return html.Div("Ocurrió un error al generar la visualización.")
+
+    return html.Div("Selecciona un gráfico válido.")
 
 if __name__ == '__main__':
     app.run(debug=True)
