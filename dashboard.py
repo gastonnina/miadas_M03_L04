@@ -6,6 +6,9 @@ import pandas as pd
 import numpy as np
 import datetime
 from dash.exceptions import PreventUpdate
+import random
+from datetime import datetime
+import uuid
 
 # Cargar los datos
 def cargar_datos():
@@ -33,6 +36,19 @@ clientes_df, compras_df, ventas_df = cargar_datos()
 ventas_con_depto = ventas_df.merge(clientes_df[['id_cliente', 'departamento']], on='id_cliente')
 print("🔗 Merge de ventas con departamento completado")
 print("Columnas en ventas_df:", ventas_df.columns.tolist())
+
+
+# Opciones simuladas
+productos = ['Laptop', 'Smartphone', 'Tablet', 'Audífonos', 'Monitor']
+metodos_pago = ['Tarjeta', 'Efectivo', 'Transferencia']
+estados_venta = ['Completado', 'Pendiente', 'Cancelado']
+
+# DataFrame global para simular ventas
+ventas_simuladas = pd.DataFrame(columns=[
+    'id_transaccion', 'id_cliente', 'producto', 'fechahora_transaccion',
+    'cantidad', 'precio_unitario', 'total', 'id_venta',
+    'metodo_pago', 'estado_venta'
+])
 
 
 # Inicializar app
@@ -138,9 +154,11 @@ app.layout = dbc.Container([
                     dcc.Tab(label='🧊 Gráfico 3D', value='graf-3d')
                 ]),
                 html.Div(id='contenido-sub-tab', className='mt-4')
-            ])
+            ]),
+            dcc.Tab(label='⏱️ Ventas en tiempo real', value='tiempo-real')
         ]),
-        html.Div(id='contenido-tab', className='mt-4')
+        html.Div(id='contenido-tab', className='mt-4'),
+        dcc.Interval(id='intervalo-tiempo-real', interval=1000, n_intervals=0)
     ])
 ], fluid=True)
 
@@ -182,8 +200,9 @@ def actualizar_kpis(start_date, end_date, departamento, metodo):
     Input('filtro-departamento', 'value'),
     Input('filtro-metodo', 'value'),
     Input('filtro-genero', 'value'),
+    Input('intervalo-tiempo-real', 'n_intervals'),
 )
-def mostrar_contenido_tab(tab, start_date, end_date, departamento, metodo, genero):
+def mostrar_contenido_tab(tab, start_date, end_date, departamento, metodo, genero, n):
     if tab == 'kpis':
         dfv, dfc, dfcli = aplicar_filtros(ventas_con_depto.copy(), compras_df.copy(), clientes_df.copy(), start_date, end_date, departamento, metodo, genero)
         kpis = calcular_kpis(dfv, dfc, dfcli)
@@ -205,6 +224,57 @@ def mostrar_contenido_tab(tab, start_date, end_date, departamento, metodo, gener
             html.H4("🧭 Clientes por Departamento"),
             clientes_table
         ])
+    if tab == 'tiempo-real':
+        try:
+            print(f"🔄 Actualización tiempo real #{n}")
+            global ventas_simuladas
+
+            # Generar una nueva fila con datos aleatorios
+            producto = random.choice(productos)
+            cantidad = random.randint(1, 5)
+            precio_unitario = round(random.uniform(100, 1000), 2)
+            total = round(cantidad * precio_unitario, 2)
+
+            nueva_fila = {
+                'id_transaccion': str(uuid.uuid4())[:8],
+                'id_cliente': random.randint(1000, 9999),
+                'producto': producto,
+                'fechahora_transaccion': datetime.now(),
+                'cantidad': cantidad,
+                'precio_unitario': precio_unitario,
+                'total': total,
+                'id_venta': random.randint(10000, 99999),
+                'metodo_pago': random.choice(metodos_pago),
+                'estado_venta': random.choice(estados_venta)
+            }
+
+            # Agregar al DataFrame
+            ventas_simuladas = pd.concat(
+                [ventas_simuladas, pd.DataFrame([nueva_fila])], ignore_index=True)
+
+            # Mostrar últimas 20
+            ventas_actuales = ventas_simuladas.sort_values(
+                by='fechahora_transaccion', ascending=False).head(20)
+
+            # Crear gráfico
+            fig = px.line(
+                ventas_actuales.sort_values('fechahora_transaccion'),
+                x='fechahora_transaccion',
+                y='total',
+                title='📈 Total por transacción',
+                markers=True,
+                hover_data=['producto', 'cantidad', 'precio_unitario', 'metodo_pago', 'estado_venta']
+            )
+            fig.update_layout(
+                template='plotly_dark',
+                xaxis_title='Fecha y Hora',
+                yaxis_title='Total Venta'
+            )
+            return dcc.Graph(figure=fig)
+        except Exception as e:
+            print(f"❌ Error en actualización tiempo real: {e}")
+            return html.Div("❌ Error al actualizar ventas en tiempo real")
+    raise PreventUpdate
     return None
 
 @app.callback(
