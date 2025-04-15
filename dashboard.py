@@ -168,7 +168,11 @@ app.layout = dbc.Container([
             dcc.Tab(label='⏱️ Ventas en tiempo real', value='tiempo-real')
         ]),
         html.Div(id='contenido-tab', className='mt-4'),
-        dcc.Interval(id='intervalo-tiempo-real', interval=1000, n_intervals=0)
+        dcc.Interval(id='intervalo-tiempo-real', interval=1000, n_intervals=0),
+        html.Footer(
+            html.Div(f"Creado con ❤️ por Gaston Nina · {datetime.now().year}", className="text-center text-muted my-4"),
+            className="mt-5"
+        )
     ])
 ], fluid=True)
 
