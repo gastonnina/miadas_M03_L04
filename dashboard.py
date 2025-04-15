@@ -79,7 +79,7 @@ def calcular_kpis(df_ventas, df_compras, df_clientes):
         return [0]*10
 
 # Función para aplicar filtros
-def aplicar_filtros(dfv, dfc, dfcli, start_date, end_date, departamento, metodo, genero):
+def aplicar_filtros(dfv, dfc, dfcli, start_date, end_date, departamento, metodo, genero, producto):
     print("🎛️ Aplicando filtros...")
     try:
         dfv = dfv[(dfv['fechahora_transaccion'] >= pd.to_datetime(start_date)) & (dfv['fechahora_transaccion'] <= pd.to_datetime(end_date))]
@@ -92,6 +92,9 @@ def aplicar_filtros(dfv, dfc, dfcli, start_date, end_date, departamento, metodo,
         if genero:
             dfcli = dfcli[dfcli['genero'].isin(genero)]
             dfv = dfv[dfv['id_cliente'].isin(dfcli['id_cliente'])]
+        if producto:
+            dfv = dfv[dfv['producto'].isin(producto)]
+            dfc = dfc[dfc['producto'].isin(producto)]
         print("✅ Filtros aplicados")
         return dfv, dfc, dfcli
     except Exception as e:
@@ -113,7 +116,7 @@ app.layout = dbc.Container([
                 display_format='DD/MM/YYYY',
                 className='mb-2'
             ),
-        ], width=3),
+        ], width=2),
         dbc.Col([
             dbc.Label("📍 Departamento"),
             dcc.Dropdown(
@@ -140,8 +143,15 @@ app.layout = dbc.Container([
                 id='filtro-genero',
                 className='mb-2'
             )
+        ], width=1),
+        dbc.Col([
+            html.Label("📦 Producto:"),
+            dcc.Dropdown(
+                id='filtro-producto',
+                options=[{'label': p, 'value': p} for p in sorted(ventas_df['producto'].dropna().unique())],
+                multi=True
+            ),
         ], width=3),
-
         dcc.Tabs(id='main-tabs', value='kpis', children=[
             dcc.Tab(label='📈 KPIs', value='kpis'),
             dcc.Tab(label='📊 Gráficas', value='graficas', children=[
@@ -200,11 +210,12 @@ def actualizar_kpis(start_date, end_date, departamento, metodo):
     Input('filtro-departamento', 'value'),
     Input('filtro-metodo', 'value'),
     Input('filtro-genero', 'value'),
+    Input('filtro-producto', 'value'),
     Input('intervalo-tiempo-real', 'n_intervals'),
 )
-def mostrar_contenido_tab(tab, start_date, end_date, departamento, metodo, genero, n):
+def mostrar_contenido_tab(tab, start_date, end_date, departamento, metodo, genero, producto, n):
     if tab == 'kpis':
-        dfv, dfc, dfcli = aplicar_filtros(ventas_con_depto.copy(), compras_df.copy(), clientes_df.copy(), start_date, end_date, departamento, metodo, genero)
+        dfv, dfc, dfcli = aplicar_filtros(ventas_con_depto.copy(), compras_df.copy(), clientes_df.copy(), start_date, end_date, departamento, metodo, genero, producto)
         kpis = calcular_kpis(dfv, dfc, dfcli)
         clientes_table = dbc.Table.from_dataframe(kpis[2].reset_index().rename(columns={'index': 'Departamento', 'departamento': 'Cantidad'}), striped=True, bordered=True, hover=True, className="mt-3")
 
@@ -223,6 +234,11 @@ def mostrar_contenido_tab(tab, start_date, end_date, departamento, metodo, gener
             html.Hr(),
             html.H4("🧭 Clientes por Departamento"),
             clientes_table
+        ])
+    elif tab == 'graficas':
+        # Aquí iría el contenido de gráficas
+        return html.Div([
+            # DIV VACIO
         ])
     if tab == 'tiempo-real':
         try:
@@ -285,13 +301,14 @@ def mostrar_contenido_tab(tab, start_date, end_date, departamento, metodo, gener
     Input('filtro-departamento', 'value'),
     Input('filtro-metodo', 'value'),
     Input('filtro-genero', 'value'),
+    Input('filtro-producto', 'value'),
 )
-def mostrar_contenido_subtab(subtab, start_date, end_date, departamento, metodo, genero):
+def mostrar_contenido_subtab(subtab, start_date, end_date, departamento, metodo, genero, producto):
     print(f"🛎️ Callback activado con subtab: {subtab}")
     print(f"📅 Fechas: {start_date} - {end_date}")
-    print(f"📍 Departamento: {departamento}, 💳 Método: {metodo}, 🚻 Género: {genero}")
+    print(f"📍 Departamento: {departamento}, 💳 Método: {metodo}, 🚻 Género: {genero}, 🚻 Producto: {producto}")
     try:
-        dfv, dfc, dfcli = aplicar_filtros(ventas_con_depto.copy(), compras_df.copy(), clientes_df.copy(), start_date, end_date, departamento, metodo, genero)
+        dfv, dfc, dfcli = aplicar_filtros(ventas_con_depto.copy(), compras_df.copy(), clientes_df.copy(), start_date, end_date, departamento, metodo, genero, producto)
 
         if dfv.empty or dfc.empty or dfcli.empty:
             print("⚠️ Uno de los dataframes está vacío después de los filtros")
